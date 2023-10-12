@@ -1,3 +1,4 @@
+//go:build !js
 // +build !js
 
 package websocket
@@ -106,6 +107,56 @@ func TestBadDials(t *testing.T) {
 		})
 		assert.Contains(t, err, "response body is not a io.ReadWriteCloser")
 	})
+}
+
+func Test_verifyHostOverride(t *testing.T) {
+	testCases := []struct {
+		name string
+		host string
+		exp  string
+	}{
+		{
+			name: "noOverride",
+			host: "",
+			exp:  "example.com",
+		},
+		{
+			name: "hostOverride",
+			host: "example.net",
+			exp:  "example.net",
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+			defer cancel()
+
+			rt := func(r *http.Request) (*http.Response, error) {
+				assert.Equal(t, "Host", tc.exp, r.Host)
+
+				h := http.Header{}
+				h.Set("Connection", "Upgrade")
+				h.Set("Upgrade", "websocket")
+				h.Set("Sec-WebSocket-Accept", secWebSocketAccept(r.Header.Get("Sec-WebSocket-Key")))
+
+				return &http.Response{
+					StatusCode: http.StatusSwitchingProtocols,
+					Header:     h,
+					Body:       ioutil.NopCloser(strings.NewReader("hi")),
+				}, nil
+			}
+
+			_, _, _ = Dial(ctx, "ws://example.com", &DialOptions{
+				HTTPClient: mockHTTPClient(rt),
+				Host:       tc.host,
+			})
+		})
+	}
+
 }
 
 func Test_verifyServerHandshake(t *testing.T) {

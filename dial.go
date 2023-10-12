@@ -1,3 +1,4 @@
+//go:build !js
 // +build !js
 
 package websocket
@@ -29,6 +30,10 @@ type DialOptions struct {
 
 	// HTTPHeader specifies the HTTP headers included in the handshake request.
 	HTTPHeader http.Header
+
+	// Host optionally overrides the Host HTTP header to send. If empty, the value
+	// of URL.Host will be used.
+	Host string
 
 	// Subprotocols lists the WebSocket subprotocols to negotiate with the server.
 	Subprotocols []string
@@ -158,6 +163,9 @@ func handshakeRequest(ctx context.Context, urls string, opts *DialOptions, copts
 	}
 
 	req, _ := http.NewRequestWithContext(ctx, "GET", u.String(), nil)
+	if len(opts.Host) > 0 {
+		req.Host = opts.Host
+	}
 	req.Header = opts.HTTPHeader.Clone()
 	req.Header.Set("Connection", "Upgrade")
 	req.Header.Set("Upgrade", "websocket")
