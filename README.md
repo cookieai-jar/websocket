@@ -1,3 +1,5 @@
+# Will be deleted as it is no longer needed
+---
 # websocket
 
 [![godoc](https://godoc.org/nhooyr.io/websocket?status.svg)](https://pkg.go.dev/nhooyr.io/websocket)
